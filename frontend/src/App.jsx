@@ -97,35 +97,40 @@ export default function App() {
         <main className="flex-1">
           <div className="max-w-5xl mx-auto h-full px-6">
             <div className="h-full flex items-center justify-center">
-              <div className="bg-slate-800/80 border border-slate-700 rounded-lg p-8 w-full max-w-md">
-                <div className="flex items-center gap-3 mb-3">
-                  <svg className="h-6 w-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z"/>
-                  </svg>
-                  <div className="text-2xl font-bold">AnonyChat</div>
-                </div>
-                <p className="text-slate-300">Connect instantly with a random stranger.</p>
-                <div className="mt-6">
-                  <button onClick={startChat} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-slate-900 rounded">
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                      <circle cx="9" cy="7" r="4"/>
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                      <circle cx="16" cy="3" r="3"/>
-                    </svg>
-                    Start Chat
-                  </button>
-                </div>
-                <div className="text-xs text-slate-400 mt-3">Click "Start Chat" to begin. No registration required.</div>
-                {searching && (
-                  <div className="mt-4 flex items-center text-sm text-slate-300">
-                    <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                    </svg>
-                    Searching for a stranger…
+              <div className="relative w-full max-w-md">
+                <div className="absolute inset-0 blur-3xl bg-gradient-to-tr from-blue-600/20 via-indigo-600/10 to-cyan-500/10 rounded-xl" aria-hidden></div>
+                <div className="relative bg-slate-900/60 backdrop-blur border border-slate-700 rounded-2xl p-8 shadow-xl">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
+                      <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z"/>
+                      </svg>
+                    </div>
+                    <div className="text-2xl font-extrabold tracking-tight">AnonyChat</div>
                   </div>
-                )}
+                  <p className="text-slate-300">Connect instantly with a random stranger. No sign-up.</p>
+                  <div className="mt-6">
+                    <button onClick={startChat} className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                        <circle cx="16" cy="3" r="3"/>
+                      </svg>
+                      Start Chat
+                    </button>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-3">Click "Start Chat" to begin.</div>
+                  {searching && (
+                    <div className="mt-4 flex items-center text-sm text-slate-300">
+                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      Searching for a stranger…
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -164,9 +169,16 @@ export default function App() {
         <div className="max-w-5xl mx-auto text-center text-slate-400 text-sm">© 2025 AnonyChat. Chat anonymously and securely.</div>
       </footer>
 
-      {!connected && (
-        <a href="/admin" className="fixed left-4 bottom-4 h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 font-semibold">N</a>
-      )}
+      <a href="/admin" className="fixed left-6 bottom-6 group">
+        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 shadow hover:bg-slate-700 transition">
+          <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
+            <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 1l3 5 5 1-4 4 1 5-5-3-5 3 1-5-4-4 5-1z"/>
+            </svg>
+          </div>
+          <span className="text-slate-200 text-sm">Admin</span>
+        </div>
+      </a>
     </div>
   )
 }

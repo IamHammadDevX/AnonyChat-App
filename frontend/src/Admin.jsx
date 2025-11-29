@@ -9,39 +9,57 @@ export default function Admin() {
   const [banReason, setBanReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [connected, setConnected] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const k = params.get('key') || ''
-    setKey(k)
-    if (k) fetchStatus(k)
   }, [])
 
   useEffect(() => {
     let t
     function loop() {
-      if (autoRefresh && key) fetchStatus(key)
+      if (connected && autoRefresh && key) fetchStatus(key)
       t = setTimeout(loop, 3000)
     }
     loop()
     return () => { if (t) clearTimeout(t) }
-  }, [autoRefresh, key])
+  }, [connected, autoRefresh, key])
 
   const fetchStatus = async (k=key) => {
     try {
       setLoading(true)
       const res = await fetch(`${BACKEND_URL}/admin?key=${encodeURIComponent(k)}`)
-      if (!res.ok) throw new Error('forbidden')
+      if (!res.ok) {
+        setError(k ? 'Wrong admin key' : 'Admin key must be entered')
+        setConnected(false)
+        setStatus(null)
+        return
+      }
       const data = await res.json()
       setStatus(data)
+      setError('')
+      setConnected(true)
     } catch (e) {
-      setStatus({ error: 'Forbidden or server error' })
+      setError('Server error')
+      setConnected(false)
     } finally {
       setLoading(false)
     }
   }
 
+  const connectAdmin = async () => {
+    const k = key.trim()
+    if (!k) {
+      setError('Admin key must be entered')
+      setConnected(false)
+      setStatus(null)
+      return
+    }
+    await fetchStatus(k)
+  }
+
   const submitBan = async () => {
+    if (!connected) return
     if (!banIp.trim()) return
     try {
       setLoading(true)
@@ -62,6 +80,7 @@ export default function Admin() {
 
   const unban = async (ip) => {
     try {
+      if (!connected) return
       setLoading(true)
       const res = await fetch(`${BACKEND_URL}/admin/unban?key=${encodeURIComponent(key)}`, {
         method: 'POST',
@@ -72,15 +91,6 @@ export default function Admin() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const setKeyAndFetch = () => {
-    const k = key.trim()
-    const url = new URL(window.location.href)
-    if (k) url.searchParams.set('key', k)
-    else url.searchParams.delete('key')
-    window.history.replaceState({}, '', url.toString())
-    if (k) fetchStatus(k)
   }
 
   const statActive = status?.active_rooms?.length || 0
@@ -94,8 +104,8 @@ export default function Admin() {
           <div className="text-xl font-semibold">AnonyChat Admin</div>
           <div className="flex items-center gap-2">
             <input value={key} onChange={(e)=>setKey(e.target.value)} placeholder="Admin key" className="px-3 py-2 rounded bg-slate-800 border border-slate-700" />
-            <button onClick={setKeyAndFetch} className="px-3 py-2 bg-blue-600 rounded">Connect</button>
-            <button onClick={()=>fetchStatus()} className="px-3 py-2 bg-slate-700 rounded">Refresh</button>
+            <button onClick={connectAdmin} className="px-3 py-2 bg-blue-600 rounded">Connect</button>
+            <button onClick={()=>connected && fetchStatus()} className="px-3 py-2 bg-slate-700 rounded">Refresh</button>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={autoRefresh} onChange={(e)=>setAutoRefresh(e.target.checked)} /> Auto refresh
             </label>
@@ -105,8 +115,15 @@ export default function Admin() {
 
       <main className="px-6">
         <div className="max-w-6xl mx-auto py-6">
-          {status?.error ? (
-            <div className="bg-red-900/30 border border-red-700 text-red-200 rounded p-3">Forbidden or server error</div>
+          {error && (
+            <div className="bg-red-900/30 border border-red-700 text-red-200 rounded p-3 mb-4">{error}</div>
+          )}
+
+          {!connected ? (
+            <div className="bg-slate-800 border border-slate-700 rounded p-6 text-center">
+              <div className="text-lg">Admin key must be entered</div>
+              <div className="text-slate-400 mt-2">Enter the key above and click Connect.</div>
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
