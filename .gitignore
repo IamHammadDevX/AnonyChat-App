@@ -1,0 +1,36 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+coverage/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.DS_Store
+**/.vite
+
+# Backend
+backend/node_modules/
+backend/data.db
+backend/.env
+backend/.env.local
+backend/*.log
+backend/.DS_Store
+
+# Root
+.env
+.DS_Store
+*.log
+logs/
+
+# Editor/OS
+.vscode/
+.idea/
+Thumbs.db
+
