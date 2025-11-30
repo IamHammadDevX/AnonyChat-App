@@ -21,7 +21,8 @@ const io = new Server(server, {
   cors: {
     origin: FRONTEND_ORIGIN,
     methods: ['GET', 'POST']
-  }
+  },
+  maxHttpBufferSize: 10 * 1024 * 1024,
 });
 
 app.use(helmet());
@@ -58,6 +59,7 @@ const waitingQueue = [];
 const rooms = new Map(); // roomId -> { user1, user2, ip1, ip2 }
 const partnerBySocket = new Map(); // socket.id -> partnerSocketId
 const roomBySocket = new Map(); // socket.id -> roomId
+const transfers = new Map();
 
 // Per-socket message rate limit
 const msgState = new Map(); // socket.id -> { tokens, last }
@@ -81,6 +83,29 @@ function canSend(socket) {
 function sanitize(text) {
   if (typeof text !== 'string') return '';
   return text.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, 2000);
+}
+
+function validateMedia(payload) {
+  const allowed = new Set(['image/png','image/jpeg','image/gif','image/webp','video/mp4','video/webm']);
+  const kind = String(payload?.kind || '').toLowerCase();
+  const mime = String(payload?.mime || '').toLowerCase();
+  const name = String(payload?.name || '').slice(0, 200);
+  const data = payload?.data || '';
+  if (!(kind === 'image' || kind === 'video')) return { ok:false, error:'invalid kind' };
+  if (!allowed.has(mime)) return { ok:false, error:'unsupported type' };
+  if (typeof data !== 'string') return { ok:false, error:'invalid data' };
+  // Expect data URL like: data:<mime>;base64,<...>
+  const maxBytes = 5 * 1024 * 1024; // 5MB
+  try {
+    const comma = data.indexOf(',');
+    if (comma < 0) return { ok:false, error:'invalid data url' };
+    const b64 = data.slice(comma+1);
+    const approxBytes = Math.floor(b64.length * 0.75);
+    if (approxBytes > maxBytes) return { ok:false, error:'size exceeds 5MB' };
+  } catch {
+    return { ok:false, error:'invalid data' };
+  }
+  return { ok:true, kind, mime, name, data };
 }
 
 io.use((socket, next) => {
@@ -172,6 +197,76 @@ io.on('connection', (socket) => {
     const timestamp = new Date().toISOString();
     db.logMessage(roomId, senderRole, text);
     io.to(roomId).emit('message', { from: senderRole, text, timestamp });
+  });
+
+  socket.on('media', (payload, cb) => {
+    const roomId = roomBySocket.get(socket.id);
+    if (!roomId) return;
+    if (!canSend(socket)) {
+      socket.emit('system', 'You are sending items too fast.');
+      return cb && cb({ ok: false });
+    }
+    const v = validateMedia(payload);
+    if (!v.ok) {
+      socket.emit('system', 'Cannot send media: '+v.error);
+      return cb && cb({ ok: false });
+    }
+    const info = rooms.get(roomId);
+    if (!info) return;
+    const senderRole = info.user1.id === socket.id ? 'user1' : 'user2';
+    const timestamp = new Date().toISOString();
+    db.logMessage(roomId, senderRole, `[MEDIA] ${v.kind} ${v.mime} ${v.name}`);
+    io.to(roomId).emit('media', { from: senderRole, kind: v.kind, mime: v.mime, name: v.name, data: v.data, timestamp });
+    cb && cb({ ok: true });
+  });
+
+  socket.on('media_begin', (meta, cb) => {
+    const roomId = roomBySocket.get(socket.id);
+    if (!roomId) return cb && cb({ ok: false });
+    const kind = String(meta?.kind || '').toLowerCase();
+    const mime = String(meta?.mime || '').toLowerCase();
+    const name = String(meta?.name || '').slice(0, 200);
+    const totalChunks = Number(meta?.totalChunks || 0);
+    const transferId = String(meta?.transferId || '').slice(0, 64);
+    const allowed = new Set(['image/png','image/jpeg','image/gif','image/webp','video/mp4','video/webm']);
+    if (!(kind === 'image' || kind === 'video')) return cb && cb({ ok:false });
+    if (!allowed.has(mime)) return cb && cb({ ok:false });
+    if (!transferId || totalChunks <= 0) return cb && cb({ ok:false });
+    const info = rooms.get(roomId);
+    if (!info) return cb && cb({ ok:false });
+    const senderRole = info.user1.id === socket.id ? 'user1' : 'user2';
+    transfers.set(transferId, { roomId, senderRole, kind, mime, name, totalChunks, received: 0, chunks: new Array(totalChunks) });
+    cb && cb({ ok:true });
+  });
+
+  socket.on('media_chunk', (payload, cb) => {
+    const transferId = String(payload?.transferId || '');
+    const index = Number(payload?.index || -1);
+    const chunk = String(payload?.chunk || '');
+    const rec = transfers.get(transferId);
+    if (!rec) return cb && cb({ ok:false });
+    if (index < 0 || index >= rec.totalChunks) return cb && cb({ ok:false });
+    if (typeof rec.chunks[index] === 'string') return cb && cb({ ok:true });
+    rec.chunks[index] = chunk;
+    rec.received += 1;
+    cb && cb({ ok:true, received: rec.received, total: rec.totalChunks });
+  });
+
+  socket.on('media_commit', (payload, cb) => {
+    const transferId = String(payload?.transferId || '');
+    const rec = transfers.get(transferId);
+    if (!rec) return cb && cb({ ok:false });
+    const data = rec.chunks.join('');
+    const v = validateMedia({ kind: rec.kind, mime: rec.mime, name: rec.name, data });
+    if (!v.ok) {
+      transfers.delete(transferId);
+      return cb && cb({ ok:false });
+    }
+    const timestamp = new Date().toISOString();
+    db.logMessage(rec.roomId, rec.senderRole, `[MEDIA] ${rec.kind} ${rec.mime} ${rec.name}`);
+    io.to(rec.roomId).emit('media', { from: rec.senderRole, kind: rec.kind, mime: rec.mime, name: rec.name, data, timestamp });
+    transfers.delete(transferId);
+    cb && cb({ ok:true });
   });
 
   socket.on('disconnect', () => {

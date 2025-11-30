@@ -19,6 +19,7 @@ export default function App() {
   const inputRef = useRef(null)
   const listRef = useRef(null)
   const [notice, setNotice] = useState('')
+  const [attachError, setAttachError] = useState('')
   
 
   useEffect(() => {
@@ -43,6 +44,10 @@ export default function App() {
 
     s.on('message', ({ from, text, timestamp }) => {
       setMessages((m) => [...m, { type: 'chat', from, text, timestamp }])
+    })
+
+    s.on('media', ({ from, kind, mime, name, data, timestamp }) => {
+      setMessages((m) => [...m, { type: 'media', from, kind, mime, name, data, timestamp }])
     })
 
     s.on('chat_ended', ({ reason }) => {
@@ -75,6 +80,12 @@ export default function App() {
     return () => clearTimeout(t)
   }, [notice])
 
+  useEffect(() => {
+    if (!attachError) return
+    const t = setTimeout(() => setAttachError(''), 5000)
+    return () => clearTimeout(t)
+  }, [attachError])
+
   const startChat = () => {
     setMessages([])
     setNotice('')
@@ -90,6 +101,89 @@ export default function App() {
     if (!text) return
     socket?.emit('message', { text })
     inputRef.current.value = ''
+  }
+
+  const fileInputRef = useRef(null)
+  const [attachProgress, setAttachProgress] = useState(0)
+  const [attachSending, setAttachSending] = useState(false)
+  const onAttachClick = () => {
+    fileInputRef.current?.click()
+  }
+  const onFileSelected = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!connected || !roomId) {
+      setAttachError('You are not in a chat. Click Start Chat first.')
+      return
+    }
+    const kind = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : '')
+    if (!kind) {
+      setMessages((m)=>[...m,{type:'system',text:'Unsupported file type'}])
+      return
+    }
+    if (file.size > 5*1024*1024) {
+      setAttachError('Selected file exceeds 5MB. Please attach a smaller file.')
+      setMessages((m)=>[...m,{type:'system',text:'Selected file exceeds 5MB. Please attach a smaller file.'}])
+      return
+    }
+    const dataUrl = await new Promise((resolve) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(fr.result)
+      fr.readAsDataURL(file)
+    })
+    // Try direct send first (fast path)
+    setAttachSending(true)
+    setAttachProgress(10)
+    const directAck = await new Promise((resolve)=>{
+      socket?.emit('media', { kind, mime: file.type, name: file.name, data: String(dataUrl) }, (ack)=>resolve(ack))
+    })
+    if (directAck && directAck.ok) {
+      setAttachProgress(100)
+      setTimeout(()=>{ setAttachSending(false); setAttachProgress(0) }, 300)
+      return
+    }
+
+    // Fallback to chunked upload (robust path)
+    const CHUNK_SIZE = 64 * 1024
+    const dataStr = String(dataUrl)
+    const totalChunks = Math.ceil(dataStr.length / CHUNK_SIZE)
+    const transferId = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`
+    setAttachProgress(0)
+    const beginAck = await new Promise((resolveBegin) => {
+      socket?.emit('media_begin', { transferId, kind, mime: file.type, name: file.name, totalChunks }, (ack)=>{ resolveBegin(ack) })
+    })
+    if (!beginAck || !beginAck.ok) {
+      setAttachSending(false)
+      setAttachProgress(0)
+      setAttachError('Could not start upload. Please try again.')
+      return
+    }
+    for (let i=0;i<totalChunks;i++) {
+      const chunk = dataStr.slice(i*CHUNK_SIZE, (i+1)*CHUNK_SIZE)
+      // eslint-disable-next-line no-await-in-loop
+      const chunkAck = await new Promise((res)=>{
+        socket?.emit('media_chunk', { transferId, index: i, chunk }, (ack)=>{ res(ack) })
+      })
+      if (!chunkAck || !chunkAck.ok) {
+        setAttachSending(false)
+        setAttachProgress(0)
+        setAttachError('Upload interrupted. Please attach again.')
+        return
+      }
+      setAttachProgress(Math.round(((i+1)/totalChunks)*100))
+    }
+    const commitAck = await new Promise((resolveCommit)=>{
+      socket?.emit('media_commit', { transferId }, (ack)=>{ resolveCommit(ack) })
+    })
+    if (!commitAck || !commitAck.ok) {
+      setAttachSending(false)
+      setAttachProgress(0)
+      setAttachError('Upload failed to finalize. Please attach again.')
+      return
+    }
+    setAttachSending(false)
+    setAttachProgress(0)
   }
 
   const disconnect = () => {
@@ -162,6 +256,20 @@ export default function App() {
                 {messages.map((m, idx) => (
                   m.type === 'system' ? (
                     <SystemMessage key={idx} text={m.text} />
+                  ) : m.type === 'media' ? (
+                    <div key={idx} className={`w-full flex ${m.from === role ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[70%] rounded overflow-hidden ${m.from === role ? 'bg-blue-600/20' : 'bg-black/40'} p-2`}> 
+                        {m.kind === 'image' ? (
+                          <img src={m.data} alt={m.name} className="max-w-full rounded" />
+                        ) : (
+                          <video src={m.data} controls className="w-full rounded" />
+                        )}
+                        <div className="mt-1 text-xs opacity-75 flex justify-between">
+                          <span className="truncate">{m.name}</span>
+                          {m.timestamp && <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div key={idx} className={`w-full flex ${m.from === role ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%] px-3 py-2 rounded ${m.from === role ? 'bg-blue-600 text-white' : 'bg-black text-white'}`}>
@@ -175,7 +283,20 @@ export default function App() {
                 ))}
               </div>
               <div className="mt-2 flex items-center gap-2">
+                {attachError && (
+                  <div className="flex-1 bg-red-900/30 border border-red-700 text-red-200 rounded px-3 py-2 text-sm text-center">{attachError}</div>
+                )}
+                {attachSending && (
+                  <div className="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm">
+                    <div className="mb-1 text-slate-300">Uploading… {attachProgress}%</div>
+                    <div className="w-full h-2 bg-slate-700 rounded">
+                      <div className="h-2 bg-blue-600 rounded" style={{ width: `${attachProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+                <input ref={fileInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={onFileSelected} />
                 <input ref={inputRef} type="text" placeholder="Type a message" className="flex-1 border border-slate-600 bg-slate-900 rounded px-3 py-2 text-slate-100" onKeyDown={(e)=>{ if(e.key==='Enter') sendMessage() }} />
+                <button onClick={onAttachClick} className="px-4 py-2 bg-slate-700 text-white rounded">Attach</button>
                 <button onClick={sendMessage} className="px-4 py-2 bg-blue-600 text-white rounded">Send</button>
                 <button onClick={disconnect} className="px-4 py-2 bg-red-600 text-white rounded">Disconnect</button>
               </div>
