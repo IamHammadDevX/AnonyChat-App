@@ -197,22 +197,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
-      <header className="px-6 py-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-2xl font-semibold">AnonyChat</div>
+      <header className="px-4 sm:px-6 py-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-xl sm:text-2xl font-semibold">AnonyChat</div>
         </div>
       </header>
 
       {!connected ? (
         <main className="flex-1">
-          <div className="max-w-5xl mx-auto h-full px-6">
+          <div className="max-w-6xl mx-auto h-full px-4 sm:px-6">
             <div className="h-full flex items-center justify-center">
-              <div className="relative w-full max-w-md">
+              <div className="relative w-full max-w-sm sm:max-w-md">
                 {notice && (
-                  <div className="mb-4 bg-slate-800 border border-slate-700 rounded p-3 text-center text-slate-200">{notice}</div>
+                  <div className="mb-4 bg-slate-800 border border-slate-700 rounded p-3 text-center text-slate-200 text-sm sm:text-base">{notice}</div>
                 )}
                 <div className="absolute inset-0 blur-3xl bg-gradient-to-tr from-blue-600/20 via-indigo-600/10 to-cyan-500/10 rounded-xl" aria-hidden></div>
-                <div className="relative bg-slate-900/60 backdrop-blur border border-slate-700 rounded-2xl p-8 shadow-xl">
+                <div className="relative bg-slate-900/60 backdrop-blur border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
                       <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -221,9 +221,9 @@ export default function App() {
                     </div>
                     <div className="text-2xl font-extrabold tracking-tight">AnonyChat</div>
                   </div>
-                  <p className="text-slate-300">Connect instantly with a random stranger. No sign-up.</p>
+                  <p className="text-slate-300 text-sm sm:text-base">Connect instantly with a random stranger. No sign-up.</p>
                   <div className="mt-6">
-                    <button onClick={startChat} className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition">
+                    <button onClick={startChat} className="w-full flex items-center justify-center gap-2 px-4 sm:px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition">
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                         <circle cx="9" cy="7" r="4"/>
@@ -250,15 +250,15 @@ export default function App() {
         </main>
       ) : (
         <main className="flex-1">
-          <div className="max-w-5xl mx-auto w-full px-6">
-            <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 h-[65vh] flex flex-col">
-              <div ref={listRef} className="flex-1 overflow-y-auto space-y-2 modern-scroll">
+          <div className="max-w-6xl mx-auto w-full px-4 sm:px-6">
+            <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 sm:p-4 h-[60vh] sm:h-[65vh] md:h-[70vh] flex flex-col">
+              <div ref={listRef} className="flex-1 overflow-y-auto space-y-2 modern-scroll px-1">
                 {messages.map((m, idx) => (
                   m.type === 'system' ? (
                     <SystemMessage key={idx} text={m.text} />
                   ) : m.type === 'media' ? (
                     <div key={idx} className={`w-full flex ${m.from === role ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] rounded overflow-hidden ${m.from === role ? 'bg-blue-600/20' : 'bg-black/40'} p-2`}> 
+                      <div className={`max-w-[90%] sm:max-w-[70%] rounded overflow-hidden ${m.from === role ? 'bg-blue-600/20' : 'bg-black/40'} p-2`} > 
                         {m.kind === 'image' ? (
                           <img src={m.data} alt={m.name} className="max-w-full rounded" />
                         ) : (
@@ -272,7 +272,7 @@ export default function App() {
                     </div>
                   ) : (
                     <div key={idx} className={`w-full flex ${m.from === role ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] px-3 py-2 rounded ${m.from === role ? 'bg-blue-600 text-white' : 'bg-black text-white'}`}>
+                      <div className={`max-w-[90%] sm:max-w-[70%] px-3 py-2 rounded ${m.from === role ? 'bg-blue-600 text-white' : 'bg-black text-white'}`}>
                         <div>{m.text}</div>
                         {m.timestamp && (
                           <div className="mt-1 text-xs opacity-75">{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -282,12 +282,12 @@ export default function App() {
                   )
                 ))}
               </div>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
                 {attachError && (
-                  <div className="flex-1 bg-red-900/30 border border-red-700 text-red-200 rounded px-3 py-2 text-sm text-center">{attachError}</div>
+                  <div className="w-full bg-red-900/30 border border-red-700 text-red-200 rounded px-3 py-2 text-sm text-center">{attachError}</div>
                 )}
                 {attachSending && (
-                  <div className="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm">
+                  <div className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm">
                     <div className="mb-1 text-slate-300">Uploading… {attachProgress}%</div>
                     <div className="w-full h-2 bg-slate-700 rounded">
                       <div className="h-2 bg-blue-600 rounded" style={{ width: `${attachProgress}%` }} />
@@ -295,28 +295,28 @@ export default function App() {
                   </div>
                 )}
                 <input ref={fileInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={onFileSelected} />
-                <input ref={inputRef} type="text" placeholder="Type a message" className="flex-1 border border-slate-600 bg-slate-900 rounded px-3 py-2 text-slate-100" onKeyDown={(e)=>{ if(e.key==='Enter') sendMessage() }} />
-                <button onClick={onAttachClick} className="px-4 py-2 bg-slate-700 text-white rounded">Attach</button>
-                <button onClick={sendMessage} className="px-4 py-2 bg-blue-600 text-white rounded">Send</button>
-                <button onClick={disconnect} className="px-4 py-2 bg-red-600 text-white rounded">Disconnect</button>
+                <input ref={inputRef} type="text" placeholder="Type a message" className="flex-1 min-w-[180px] border border-slate-600 bg-slate-900 rounded px-3 py-2 text-slate-100" onKeyDown={(e)=>{ if(e.key==='Enter') sendMessage() }} />
+                <button onClick={onAttachClick} className="px-3 sm:px-4 py-2 bg-slate-700 text-white rounded">Attach</button>
+                <button onClick={sendMessage} className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded">Send</button>
+                <button onClick={disconnect} className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded">Disconnect</button>
               </div>
             </div>
           </div>
         </main>
       )}
 
-      <footer className="px-6 py-4 border-t border-slate-800">
-        <div className="max-w-5xl mx-auto text-center text-slate-400 text-sm">© 2025 AnonyChat. Chat anonymously and securely.</div>
+      <footer className="px-4 sm:px-6 py-4 border-t border-slate-800">
+        <div className="max-w-6xl mx-auto text-center text-slate-400 text-xs sm:text-sm">© 2025 AnonyChat. Chat anonymously and securely.</div>
       </footer>
 
-      <a href="/admin" className="fixed left-6 bottom-6 group">
-        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 shadow hover:bg-slate-700 transition">
+      <a href="/admin" className="fixed left-4 sm:left-6 bottom-4 sm:bottom-6 group">
+        <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full bg-slate-800 border border-slate-700 shadow hover:bg-slate-700 transition">
           <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
             <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 1l3 5 5 1-4 4 1 5-5-3-5 3 1-5-4-4 5-1z"/>
             </svg>
           </div>
-          <span className="text-slate-200 text-sm">Admin</span>
+          <span className="text-slate-200 text-xs sm:text-sm">Admin</span>
         </div>
       </a>
     </div>

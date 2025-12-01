@@ -122,11 +122,11 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
-      <header className="px-6 py-4 border-b border-slate-800">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="text-xl font-semibold">AnonyChat Admin</div>
-          <div className="flex items-center gap-2">
-            <input value={key} onChange={(e)=>setKey(e.target.value)} placeholder="Admin key" className="px-3 py-2 rounded bg-slate-800 border border-slate-700" />
+      <header className="px-4 sm:px-6 py-4 border-b border-slate-800">
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="text-lg sm:text-xl font-semibold">AnonyChat Admin</div>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <input value={key} onChange={(e)=>setKey(e.target.value)} placeholder="Admin key" className="flex-1 min-w-[160px] sm:min-w-[220px] px-3 py-2 rounded bg-slate-800 border border-slate-700" />
             <button onClick={connectAdmin} className="px-3 py-2 bg-blue-600 rounded">Connect</button>
             <button onClick={()=>connected && fetchStatus()} className="px-3 py-2 bg-slate-700 rounded">Refresh</button>
             <label className="flex items-center gap-2 text-sm">
@@ -136,7 +136,7 @@ export default function Admin() {
         </div>
       </header>
 
-      <main className="px-6">
+      <main className="px-4 sm:px-6">
         <div className="max-w-6xl mx-auto py-6">
           {error && (
             <div className="bg-red-900/30 border border-red-700 text-red-200 rounded p-3 mb-4">{error}</div>
@@ -149,7 +149,7 @@ export default function Admin() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="bg-slate-800 border border-slate-700 rounded p-4">
                   <div className="text-sm text-slate-400">Active Rooms</div>
                   <div className="text-2xl font-bold">{statActive}</div>
@@ -247,7 +247,7 @@ export default function Admin() {
                   <div className="font-medium">Room Messages</div>
                 </div>
                 
-                <div className="flex items-end gap-3">
+                <div className="flex flex-wrap items-end gap-3">
                   <div className="flex-1">
                     <div className="text-sm text-slate-400">Select room</div>
                     <select value={selectedRoom} onChange={(e)=>setSelectedRoom(e.target.value)} className="w-full border border-slate-700 rounded px-3 py-2 bg-slate-900">
@@ -259,7 +259,7 @@ export default function Admin() {
                   </div>
                   <button disabled={logsLoading} onClick={fetchLogs} className="px-4 py-2 bg-slate-700 rounded">{logsLoading ? 'Loading...' : 'Load messages'}</button>
                 </div>
-                <div className="mt-4 max-h-[40vh] overflow-y-auto modern-scroll">
+                <div className="mt-4 max-h-[55vh] sm:max-h-[45vh] overflow-y-auto modern-scroll">
                   {logs?.length ? (
                     <ul className="space-y-2 text-sm">
                       {logs.map((l, i) => (
