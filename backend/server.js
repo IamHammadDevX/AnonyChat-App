@@ -11,7 +11,7 @@ const db = require('./db');
 dotenv.config();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'CHANGE_ME';
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'supersecret123';
 const ENABLE_LOGS = String(process.env.ENABLE_LOGS || 'false').toLowerCase() === 'true';
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 
