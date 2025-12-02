@@ -13,20 +13,29 @@ dotenv.config();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'supersecret123';
 const ENABLE_LOGS = String(process.env.ENABLE_LOGS || 'false').toLowerCase() === 'true';
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const FRONTEND_ORIGINS = String(process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: FRONTEND_ORIGIN,
+    origin: FRONTEND_ORIGINS,
     methods: ['GET', 'POST']
   },
   maxHttpBufferSize: 10 * 1024 * 1024,
 });
 
 app.use(helmet());
-app.use(cors({ origin: FRONTEND_ORIGIN }));
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (FRONTEND_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  }
+}));
 app.use(express.json());
 const TRUST_PROXY = String(process.env.TRUST_PROXY || 'false').toLowerCase();
 if (TRUST_PROXY === 'false') {
